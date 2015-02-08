@@ -25,7 +25,7 @@ public class PongView extends View
         paint = new Paint();
         paint.setColor(0xf6666666); // solid gray
 
-        ball = new Ball(100,200);
+        ball = new Ball(10,20);
         ball.setVel(1,1);
     }
 

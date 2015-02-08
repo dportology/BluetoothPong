@@ -25,7 +25,7 @@ public class Ball
     {
         x = 0;
         y = 0;
-        radius = 5;
+        radius = 15;
         speed_mult = 1;
     }
 
@@ -34,7 +34,7 @@ public class Ball
     {
         x = x_;
         y = y_;
-        radius = 5;
+        radius = 15;
         speed_mult = 1;
     }
 
