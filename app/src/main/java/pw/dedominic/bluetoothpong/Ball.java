@@ -19,12 +19,14 @@ public class Ball
     // amount balls move along x and y every frame
     private double x_vel;
     private double y_vel;
+    private float speed_mult;
 
     public Ball()
     {
         x = 0;
         y = 0;
         radius = 5;
+        speed_mult = 1;
     }
 
     // takes x y starting coords, likely screen width / 2 = x, screen height / 2 = y.
@@ -33,6 +35,7 @@ public class Ball
         x = x_;
         y = y_;
         radius = 5;
+        speed_mult = 1;
     }
 
     // takes radius val too
@@ -41,6 +44,7 @@ public class Ball
         x = x_;
         y = y_;
         radius = rad;
+        speed_mult = 1;
     }
 
     // to set velocity
@@ -74,6 +78,8 @@ public class Ball
     // when bounces off paddle
     public void xDeflect()
     {
+        speed_mult += .1;
+        x_vel *= speed_mult;
         x_vel = -x_vel;
     }
 
