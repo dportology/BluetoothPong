@@ -14,7 +14,9 @@ public class MainActivity extends ActionBarActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        // sets PongView to View field in activity
         game_field = (PongView) findViewById(R.id.view);
+        game_field.update(); // starts the view off
     }
 
 

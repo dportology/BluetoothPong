@@ -13,8 +13,8 @@ public class Ball
     private int radius;
 
     // x and y coords
-    private double x;
-    private double y;
+    public double x;
+    public double y;
 
     // amount balls move along x and y every frame
     private double x_vel;
@@ -54,16 +54,6 @@ public class Ball
         y_vel = vel_y;
     }
 
-    public double getX()
-    {
-        return x;
-    }
-
-    public double getY()
-    {
-        return y;
-    }
-
     public int getRad()
     {
         return radius;
@@ -78,16 +68,15 @@ public class Ball
     // when bounces off paddle
     public void xDeflect()
     {
-        speed_mult += .1;
-        x_vel *= speed_mult;
+        //speed_mult += .1;
+        //x_vel *= speed_mult;
         x_vel = -x_vel;
     }
 
     public void update(Canvas screen, Paint color)
     {
+        screen.drawCircle((float)x, (float)y, radius, color);
         x += x_vel;
         y += y_vel;
-
-        screen.drawCircle((float)x, (float)y, radius, color);
     }
 }
