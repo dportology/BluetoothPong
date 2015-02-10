@@ -1,24 +1,76 @@
 package pw.dedominic.bluetoothpong;
 
+import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends ActionBarActivity implements SensorEventListener
+{
 
     PongView game_field;
+
+    SensorManager senManage;
+    Sensor accelerometer;
+
+    float THRESHOLD = 10;
+    float prev_z;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        // sets accelerometer input device
+        senManage = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        accelerometer = senManage.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        senManage.registerListener(this, accelerometer , SensorManager.SENSOR_DELAY_NORMAL);
+
         // sets PongView to View field in activity
         game_field = (PongView) findViewById(R.id.view);
         game_field.update(); // starts the view off
     }
 
+    @Override
+    public void onSensorChanged(SensorEvent e)
+    {
+        // only axis needed, z.
+        if (e.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
+        {
+            float z = e.values[2];
+
+            if (z > THRESHOLD || -z > THRESHOLD)
+            {
+                game_field.TEST_TILT();
+            }
+
+            prev_z += z;
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy)
+    {
+
+    }
+
+    protected void onPause()
+    {
+        super.onPause();
+        senManage.unregisterListener(this);
+    }
+
+    protected void onResume()
+    {
+        super.onResume();
+        senManage.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL);
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {

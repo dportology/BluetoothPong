@@ -77,6 +77,11 @@ public class PongView extends View
         redraw.sleep(1000/FPS);
     }
 
+    public void TEST_TILT()
+    {
+        ball.yDeflect();
+    }
+
     @Override
     public void onDraw(Canvas canvas)
     {
