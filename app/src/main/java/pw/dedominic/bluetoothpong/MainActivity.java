@@ -19,7 +19,6 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     SensorManager senManage;
     Sensor accelerometer;
 
-    float THRESHOLD = 10;
     float prev_z;
 
     @Override
@@ -43,14 +42,7 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         // only axis needed, z.
         if (e.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
         {
-            float z = e.values[2];
-
-            if (z > THRESHOLD || -z > THRESHOLD)
-            {
-                game_field.TEST_TILT();
-            }
-
-            prev_z += z;
+            game_field.ball.setVel(e.values[1], e.values[0]);
         }
     }
 

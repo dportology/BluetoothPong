@@ -23,6 +23,8 @@ public class PongView extends View
 
     // ball and paddle
     private Ball ball;
+    public Paddle player_paddle;
+    public Paddle enemy_paddle;
 
     // creates a thread that will update and draw the view
     // based on delay set by call to sleep in PongView.update() function
