@@ -57,6 +57,9 @@ public class PongView extends View
 
         ball = new Ball(100,100);
         ball.setVel(6,3);
+
+        player_paddle = new Paddle(50,500,100,10);
+        enemy_paddle = new Paddle(getWidth()-50,500,100,10);
     }
 
 
@@ -79,9 +82,14 @@ public class PongView extends View
         redraw.sleep(1000/FPS);
     }
 
-    public void TEST_TILT()
+    public void tilted(float tilt_val)
     {
-        ball.yDeflect();
+        if (player_paddle.getY()-player_paddle.getPaddle_half_height() > 0
+            && player_paddle.getY() + player_paddle.getPaddle_half_height() < getHeight())
+        {
+            player_paddle.paddleMove(tilt_val);
+            enemy_paddle.paddleMove(tilt_val);
+        }
     }
 
     @Override
@@ -90,5 +98,7 @@ public class PongView extends View
         super.onDraw(canvas);
 
         ball.update(canvas, paint);
+        player_paddle.update(canvas, paint);
+        enemy_paddle.update(canvas, paint);
     }
 }

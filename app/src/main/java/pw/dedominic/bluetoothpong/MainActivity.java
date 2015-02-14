@@ -42,7 +42,7 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         // only axis needed, z.
         if (e.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
         {
-            game_field.ball.setVel(e.values[1], e.values[0]);
+            game_field.tilted(e.values[0]);
         }
     }
 
