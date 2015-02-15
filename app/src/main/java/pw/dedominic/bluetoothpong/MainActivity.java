@@ -1,38 +1,37 @@
 package pw.dedominic.bluetoothpong;
 
 import android.content.Context;
-import android.graphics.drawable.LayerDrawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.os.Build;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.ViewTreeObserver;
+import android.view.WindowManager;
 
 
 public class MainActivity extends ActionBarActivity implements SensorEventListener
 {
 
-    PongView game_field;
+    private PongView game_field;
 
-    SensorManager senManage;
-    Sensor accelerometer;
-
-    float prev_z;
+    private SensorManager senManage;
+    private Sensor accelerometer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        // keeps screen on
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
         // sets accelerometer input device
         senManage = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         accelerometer = senManage.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        senManage.registerListener(this, accelerometer , SensorManager.SENSOR_DELAY_NORMAL);
+        senManage.registerListener(this, accelerometer , SensorManager.SENSOR_DELAY_GAME);
 
         // sets PongView to View field in activity
         game_field = (PongView) findViewById(R.id.view);
@@ -42,7 +41,7 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     @Override
     public void onSensorChanged(SensorEvent e)
     {
-        // only axis needed, z.
+        // only rotation around y axis needed.
         if (e.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
         {
             game_field.tilted(e.values[0]);

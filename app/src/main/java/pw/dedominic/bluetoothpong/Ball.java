@@ -19,14 +19,12 @@ public class Ball
     // amount balls move along x and y every frame
     private double x_vel;
     private double y_vel;
-    private float speed_mult;
 
     public Ball()
     {
         x = 0;
         y = 0;
         radius = 15;
-        speed_mult = 1;
     }
 
     // takes x y starting coords, likely screen width / 2 = x, screen height / 2 = y.
@@ -35,7 +33,6 @@ public class Ball
         x = x_;
         y = y_;
         radius = 15;
-        speed_mult = 1;
     }
 
     // takes radius val too
@@ -44,14 +41,12 @@ public class Ball
         x = x_;
         y = y_;
         radius = rad;
-        speed_mult = 1;
     }
 
-    // to set velocity
-    public void setVel(double vel_x, double vel_y)
+    public void setVel(double ang, double speed)
     {
-        x_vel = vel_x;
-        y_vel = vel_y;
+        x_vel = Math.cos(ang) * speed;
+        y_vel = Math.sin(ang) * speed;
     }
 
     public int getRad()
@@ -68,9 +63,29 @@ public class Ball
     {
         return y_vel;
     }
-    // when bounces off ceiling/floor
-    public void yDeflect()
+
+    public double getLeft()
     {
+        return x-radius;
+    }
+
+    public double getRight()
+    {
+        return x+radius;
+    }
+
+    public double getTop()
+    {
+        return y-radius;
+    }
+
+    public double getBottom()
+    {
+        return y+radius;
+    }
+
+    // when bounces off ceiling/floor
+    public void yDeflect() {
         y_vel = -y_vel;
     }
 

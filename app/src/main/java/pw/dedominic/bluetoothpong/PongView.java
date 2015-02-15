@@ -1,13 +1,14 @@
 package pw.dedominic.bluetoothpong;
 
 import android.content.Context;
-import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.os.Message;
 import android.util.AttributeSet;
 import android.view.View;
 import android.os.Handler;
+
+import java.util.Random;
 
 /**
  * Created by prussian on 2/8/15.
@@ -16,10 +17,11 @@ public class PongView extends View
 {
     // Constants
     public final int FPS = 60;
-    public final int paddle_space = 100;
+    public final int paddle_space = 75;
     public final int paddle_half_height = 100;
-    public final int paddle_half_thickness = 5;
+    public final int paddle_half_thickness = 8;
     public final int paddle_thickness = paddle_half_thickness*2;
+    private static final Random rand = new Random();
 
     // redraws view
     private DrawHandler redraw = new DrawHandler();
@@ -50,7 +52,7 @@ public class PongView extends View
         }
 
         // time in milliseconds to draw next frame
-        public void sleep(int time)
+        public void sleep(long time)
         {
             this.removeMessages(0);
             this.sendMessageDelayed(obtainMessage(0), time);
@@ -76,53 +78,79 @@ public class PongView extends View
 
         if (!isInit)
         {
-            ball = new Ball(getWidth()/2,getHeight()/2);
-            ball.setVel(6,3);
-
-            player_paddle = new Paddle(paddle_space,getHeight()/2,paddle_half_height,paddle_thickness);
-            enemy_paddle = new Paddle(getWidth()-paddle_space,getHeight()/2,paddle_half_height,paddle_thickness);
-
-            isInit = true;
+            newGame();
         }
 
-        if (ball.x <= ball.getRad()
-            || ball.x >= getWidth() - ball.getRad())
+        if (ball.getLeft() <= 0
+            || ball.getRight() >= getWidth())
         {
-            ball.xDeflect();
+            newGame();
         }
 
-        if (ball.y <= ball.getRad()
-            || ball.y >= getHeight() - ball.getRad())
+        if (ball.getTop() <= 0
+            || ball.getBottom() >= getHeight())
         {
             ball.yDeflect();
         }
 
-        // checks for paddle collision
         if (ball.getX_vel() < 0)
         {
-            if (ball.x <= ball.getRad() + paddle_space + paddle_thickness)
+            if (ball.getBottom()>= player_paddle.getTop()  &&
+                ball.getLeft()  >= player_paddle.getLeft() &&
+                ball.getRight() <= player_paddle.getRight()&&
+                ball.getTop()   <= player_paddle.getBottom())
             {
-                if (player_paddle.getY()-paddle_half_height <= ball.y
-                    && ball.y <= player_paddle.getY()+paddle_half_height)
-                {
-                    ball.xDeflect();
-                }
+                ball.yDeflect();
+                ball.xDeflect();
+            }
+            else if (ball.y >= player_paddle.getTop()    &&
+                     ball.y <= player_paddle.getBottom() &&
+                     ball.getLeft() <= paddle_space+paddle_thickness &&
+                     ball.getLeft() >= paddle_space)
+            {
+                ball.xDeflect();
             }
         }
         else
         {
-            if (ball.x >= (getWidth()-(paddle_space+paddle_thickness)) -  ball.getRad())
+            if (ball.getBottom()>= enemy_paddle.getTop()  &&
+                ball.getLeft()  >= enemy_paddle.getLeft() &&
+                ball.getRight() <= enemy_paddle.getRight()&&
+                ball.getTop()   <= enemy_paddle.getBottom())
             {
-                if (enemy_paddle.getY()-paddle_half_height <= ball.y
-                    && ball.y <= enemy_paddle.getY()+paddle_half_height)
-                {
-                    ball.xDeflect();
-                }
+                ball.yDeflect();
+                ball.xDeflect();
+            }
+            else if (ball.y >= enemy_paddle.getTop()    &&
+                     ball.y <= enemy_paddle.getBottom() &&
+                     ball.getRight() >= getWidth() - (paddle_space+paddle_thickness) &&
+                     ball.getRight() <= getWidth() - (paddle_space))
+            {
+                ball.xDeflect();
             }
         }
 
         // time till next frame in milliseconds
         redraw.sleep(1000/FPS);
+    }
+
+    public void newGame()
+    {
+        ball = new Ball(getWidth()/2,getHeight()/2);
+        ball.setVel(randomAngle(), 6);
+
+        player_paddle = new Paddle(paddle_space,getHeight()/2,paddle_half_height,paddle_thickness);
+        enemy_paddle = new Paddle(getWidth()-paddle_space,getHeight()/2,paddle_half_height,paddle_thickness);
+
+        isInit = true;
+    }
+
+    // returns random angle in radians
+    public double randomAngle()
+    {
+        int max = 63;
+        int min = -max;
+        return (rand.nextInt((max - min) + 1) + min) * .1;
     }
 
     public void tilted(float tilt_val)
@@ -137,7 +165,7 @@ public class PongView extends View
         // makes sure paddles don't go off screen
         if (tilt_val < 0)
         {
-            if (player_paddle.getY() >= paddle_half_height)
+            if (player_paddle.getTop() >= 0)
             {
                 player_paddle.paddleMove(tilt_val);
                 enemy_paddle.paddleMove(tilt_val);
@@ -150,7 +178,7 @@ public class PongView extends View
         }
         else
         {
-            if (player_paddle.getY() <= getHeight() - paddle_half_height)
+            if (player_paddle.getBottom() <= getHeight())
             {
                 player_paddle.paddleMove(tilt_val);
                 enemy_paddle.paddleMove(tilt_val);
