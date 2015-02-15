@@ -59,6 +59,15 @@ public class Ball
         return radius;
     }
 
+    public double getX_vel()
+    {
+        return x_vel;
+    }
+
+    public double getY_vel()
+    {
+        return y_vel;
+    }
     // when bounces off ceiling/floor
     public void yDeflect()
     {

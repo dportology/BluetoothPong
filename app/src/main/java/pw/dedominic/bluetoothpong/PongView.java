@@ -97,22 +97,70 @@ public class PongView extends View
             ball.yDeflect();
         }
 
+        // checks for paddle collision
+        if (ball.getX_vel() < 0)
+        {
+            if (ball.x <= ball.getRad() + paddle_space + paddle_thickness)
+            {
+                if (player_paddle.getY()-paddle_half_height <= ball.y
+                    && ball.y <= player_paddle.getY()+paddle_half_height)
+                {
+                    ball.xDeflect();
+                }
+            }
+        }
+        else
+        {
+            if (ball.x >= (getWidth()-(paddle_space+paddle_thickness)) -  ball.getRad())
+            {
+                if (enemy_paddle.getY()-paddle_half_height <= ball.y
+                    && ball.y <= enemy_paddle.getY()+paddle_half_height)
+                {
+                    ball.xDeflect();
+                }
+            }
+        }
+
         // time till next frame in milliseconds
         redraw.sleep(1000/FPS);
     }
 
     public void tilted(float tilt_val)
     {
+        tilt_val *= 2;
+
         if (!isInit)
         {
             return;
         }
-        //if (player_paddle.getY()-player_paddle.getPaddle_half_height() > 0
-        //    && player_paddle.getY() + player_paddle.getPaddle_half_height() < getHeight())
-        //{
-            player_paddle.paddleMove(tilt_val);
-            enemy_paddle.paddleMove(tilt_val);
-        //}
+
+        // makes sure paddles don't go off screen
+        if (tilt_val < 0)
+        {
+            if (player_paddle.getY() >= paddle_half_height)
+            {
+                player_paddle.paddleMove(tilt_val);
+                enemy_paddle.paddleMove(tilt_val);
+            }
+            else
+            {
+                player_paddle.paddleMove(0);
+                enemy_paddle.paddleMove(0);
+            }
+        }
+        else
+        {
+            if (player_paddle.getY() <= getHeight() - paddle_half_height)
+            {
+                player_paddle.paddleMove(tilt_val);
+                enemy_paddle.paddleMove(tilt_val);
+            }
+            else
+            {
+                player_paddle.paddleMove(0);
+                enemy_paddle.paddleMove(0);
+            }
+        }
     }
 
     @Override
