@@ -41,22 +41,12 @@ public class Paddle
         return x;
     }
 
-    public int getPaddle_half_height()
-    {
-        return paddle_half_height;
-    }
-
-    public int getPaddle_half_width()
-    {
-        return paddle_half_width;
-    }
-
     public void update(Canvas screen, Paint color)
     {
-        screen.drawRect(Math.abs(x-paddle_half_width),
-                        Math.abs(y-paddle_half_height),
-                        Math.abs(x+paddle_half_width),
-                        Math.abs(y+paddle_half_height),
+        screen.drawRect(x-paddle_half_width,
+                        y-paddle_half_height,
+                        x+paddle_half_width,
+                        y+paddle_half_height,
                         color);
         y += paddle_vel;
     }

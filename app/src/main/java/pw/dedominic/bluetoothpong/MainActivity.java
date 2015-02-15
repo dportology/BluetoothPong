@@ -1,14 +1,17 @@
 package pw.dedominic.bluetoothpong;
 
 import android.content.Context;
+import android.graphics.drawable.LayerDrawable;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.os.Build;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.ViewTreeObserver;
 
 
 public class MainActivity extends ActionBarActivity implements SensorEventListener

@@ -14,8 +14,14 @@ import android.os.Handler;
  */
 public class PongView extends View
 {
-    // fps and redrawing the view
+    // Constants
     public final int FPS = 60;
+    public final int paddle_space = 100;
+    public final int paddle_half_height = 100;
+    public final int paddle_half_thickness = 5;
+    public final int paddle_thickness = paddle_half_thickness*2;
+
+    // redraws view
     private DrawHandler redraw = new DrawHandler();
 
     // color of ball
@@ -23,8 +29,11 @@ public class PongView extends View
 
     // ball and paddle
     private Ball ball;
-    public Paddle player_paddle;
-    public Paddle enemy_paddle;
+    private Paddle player_paddle;
+    private Paddle enemy_paddle;
+
+    // if initialized
+    private boolean isInit = false;
 
     // creates a thread that will update and draw the view
     // based on delay set by call to sleep in PongView.update() function
@@ -54,18 +63,28 @@ public class PongView extends View
 
         paint = new Paint();
         paint.setColor(0xff666666); // solid gray
-
-        ball = new Ball(100,100);
-        ball.setVel(6,3);
-
-        player_paddle = new Paddle(50,500,100,10);
-        enemy_paddle = new Paddle(getWidth()-50,500,100,10);
     }
-
 
     // currently just makes ball bounce around view
     public void update()
     {
+        if (getHeight() == 0 || getWidth() == 0)
+        {
+            redraw.sleep(1);
+            return;
+        }
+
+        if (!isInit)
+        {
+            ball = new Ball(getWidth()/2,getHeight()/2);
+            ball.setVel(6,3);
+
+            player_paddle = new Paddle(paddle_space,getHeight()/2,paddle_half_height,paddle_thickness);
+            enemy_paddle = new Paddle(getWidth()-paddle_space,getHeight()/2,paddle_half_height,paddle_thickness);
+
+            isInit = true;
+        }
+
         if (ball.x <= ball.getRad()
             || ball.x >= getWidth() - ball.getRad())
         {
@@ -84,18 +103,27 @@ public class PongView extends View
 
     public void tilted(float tilt_val)
     {
-        if (player_paddle.getY()-player_paddle.getPaddle_half_height() > 0
-            && player_paddle.getY() + player_paddle.getPaddle_half_height() < getHeight())
+        if (!isInit)
         {
+            return;
+        }
+        //if (player_paddle.getY()-player_paddle.getPaddle_half_height() > 0
+        //    && player_paddle.getY() + player_paddle.getPaddle_half_height() < getHeight())
+        //{
             player_paddle.paddleMove(tilt_val);
             enemy_paddle.paddleMove(tilt_val);
-        }
+        //}
     }
 
     @Override
     public void onDraw(Canvas canvas)
     {
         super.onDraw(canvas);
+
+        if (!isInit)
+        {
+            return;
+        }
 
         ball.update(canvas, paint);
         player_paddle.update(canvas, paint);
