@@ -64,7 +64,7 @@ public class PongView extends View
         super(context, attrs);
 
         paint = new Paint();
-        paint.setColor(0xff666666); // solid gray
+        paint.setColor(Consts.PAINT_COLOR); // solid gray
     }
 
     // currently just makes ball bounce around view
@@ -153,7 +153,7 @@ public class PongView extends View
         return (rand.nextInt((max - min) + 1) + min) * .1;
     }
 
-    public void tilted(float tilt_val)
+    public void player_tilt(float tilt_val)
     {
         tilt_val *= 2;
 
