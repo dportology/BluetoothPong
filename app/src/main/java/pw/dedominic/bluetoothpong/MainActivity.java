@@ -1,9 +1,8 @@
 package pw.dedominic.bluetoothpong;
 
+import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothServerSocket;
-import android.bluetooth.BluetoothSocket;
 import android.content.Context;
 import android.content.Intent;
 import android.hardware.Sensor;
@@ -11,26 +10,13 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Message;
-import android.provider.SyncStateContract;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.os.Handler;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
-
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.util.Set;
-import java.util.UUID;
-import java.util.logging.Handler;
-import java.util.logging.LogRecord;
-
 
 public class MainActivity extends ActionBarActivity implements SensorEventListener
 {
@@ -42,6 +28,8 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
 
     private int bluetoothState = Consts.STATE_DOING_NOTHING;
     private int paddleSide = Consts.PLAYER_PADDLE_LEFT;
+    private boolean isInit = false;
+    private boolean waitingOn_activ = false;
 
     private SensorManager senManage;
     private Sensor accelerometer;
@@ -50,38 +38,70 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
 
     private Handler mHandler = new Handler()
     {
+        @Override
         public void handleMessage(Message msg)
         {
+            Log.e("BT-USB", "Handling Message " + msg.what);
             switch (msg.what)
             {
                 case Consts.READING:
-                    // read from opponent
+                    String value = new String((byte[]) msg.obj, 0, msg.arg1);
+                    Log.e("In READING", "message: " + value);
+
+                    if (value.equals("UP"))
+                    {
+                        mPongView.enemy_tilt(Consts.PADDLE_UP);
+                    }
+                    else if (value.equals("DOWN"))
+                    {
+                        mPongView.enemy_tilt(Consts.PADDLE_DOWN);
+                    }
+                    else if (value.equals("DEFLECT_X"))
+                    {
+                        mPongView.enemyDeflect('x');
+                    }
+                    else if (value.equals("DEFLECT_Y"))
+                    {
+                        mPongView.enemyDeflect('y');
+                    }
+                    else if (value.equals("START"))
+                    {
+                        gameStart(false);
+                    }
+                    else
+                    {
+                        try
+                        {
+                            mPongView.setBallVel(Double.parseDouble(value));
+                        }
+                        catch (NumberFormatException e) {}
+                    }
                     return;
                 case Consts.SYNCHRONIZE:
                     // send/receive periodic state info to keep things in check
                     return;
                 case Consts.CONNECT_STATE_CHANGE:
                     // handle changes in connection state
+                    Log.e("BT-DEBUG", "" + msg.arg1);
+                    bluetoothState = msg.arg1;
                     return;
+                case Consts.DEFLECTION_X:
+                    // send msg of paddle deflect to enemy
+                    mBtPongService.write("DEFLECT_X".getBytes());
+                    return;
+                case Consts.DEFLECTION_Y:
+                    // send msg of paddle deflect to enemy
+                    mBtPongService.write("DEFLECT_Y".getBytes());
+                    return;
+                case Consts.PADDLE_DOWN:
+                    mBtPongService.write("DOWN".getBytes());
+                    return;
+                case Consts.PADDLE_UP:
+                    mBtPongService.write("UP".getBytes());
+                    return;
+                case Consts.BALL_ANGLE:
+                    mBtPongService.write((byte[])msg.obj);
             }
-        }
-
-        @Override
-        public void close()
-        {
-
-        }
-
-        @Override
-        public void flush()
-        {
-
-        }
-
-        @Override
-        public void publish(LogRecord record)
-        {
-
         }
     };
 
@@ -90,6 +110,7 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+         mBtPongService = new BluetoothPongService(mHandler);
         // keeps screen on
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
     }
@@ -102,21 +123,10 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         // only rotation around y axis needed.
         if (e.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
         {
-            mPongView.player_tilt(e.values[0]);
-
-            // above value in bytes to be written out to opponent
-            byte[] writeFloat = ByteBuffer.allocate(4).putFloat(e.values[0]).array();
-
-            mBtPongService.write(writeFloat);
-        }
-    }
-
-    public void onOpponentSensorChange(SensorEvent e)
-    {
-        if (e.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
-        {
-            mPongView.player_tilt(e.values[0]);
-
+            if (e.values[0] > 1 || -e.values[0] > 1)
+            {
+                mPongView.player_tilt(e.values[0]);
+            }
         }
     }
 
@@ -127,36 +137,60 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
 
     }
 
-    protected void connectToEnemy(int type)
-    {
+    protected void connectToEnemy(int type) {
         int REQUEST_ENABLE_BT = 1;
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-        if (!mBluetoothAdapter.isEnabled())
-        {
+        if (!mBluetoothAdapter.isEnabled()) {
             Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
         }
 
         if (type == BLUETOOTH_INIT_SERVER)
         {
+            paddleSide = Consts.PLAYER_PADDLE_LEFT;
+
             mBtPongService.listen();
         }
         else
         {
+            paddleSide = Consts.PLAYER_PADDLE_RIGHT;
+
             Intent getBtDevice = new Intent(this, PairedBluetoothActivity.class);
-            startActivity(getBtDevice);
-            String MAC_ADDRESS = getBtDevice.getStringExtra("device");
+            startActivityForResult(getBtDevice, Consts.GET_MAC_ADDRESS);
+            waitingOn_activ = true;
+        }
+    }
 
-            BluetoothDevice mDevice = mBluetoothAdapter.getRemoteDevice(MAC_ADDRESS);
+    public void onActivityResult(int requestCode, int resultCode, Intent data)
+    {
+        Log.e("BT-DEBUG", "test");
+        if (!waitingOn_activ)
+        {
+            return;
+        }
 
-            mBtPongService.connectToHost(mDevice);
+        if (resultCode == Activity.RESULT_OK && requestCode == Consts.GET_MAC_ADDRESS)
+        {
+            String MAC_ADDRESS = data.getStringExtra("device");
+            if (MAC_ADDRESS != null)
+            {
+                Log.e("BT-DEBUG", "CONNECTING TO: " + MAC_ADDRESS);
+                BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(MAC_ADDRESS);
+                mBtPongService.connectToHost(device);
+            }
         }
     }
 
     // when connection is set, call this
-    protected void gameStart()
+    protected void gameStart(boolean originator)
     {
+        // tell opponent to get ready
+        if (originator)
+        {
+            mBtPongService.write("START".getBytes());
+        }
+
         // sets accelerometer input device
         senManage = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         accelerometer = senManage.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -164,13 +198,20 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
 
         // sets PongView to View field in activity
         mPongView = (PongView) findViewById(R.id.view);
+        mPongView.setOtherConst(paddleSide, mHandler);
         mPongView.update(); // starts the view off
+        isInit = true;
     }
 
     // app out of focus
     protected void onPause()
     {
         super.onPause();
+        mBtPongService.stopAllConnections();
+        if (!isInit)
+        {
+            return;
+        }
         senManage.unregisterListener(this);
     }
 
@@ -178,6 +219,10 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     protected void onResume()
     {
         super.onResume();
+        if (!isInit)
+        {
+            return;
+        }
         senManage.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
     }
 
@@ -205,9 +250,11 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
                 connectToEnemy(BLUETOOTH_INIT_SERVER);
                 return true;
             case R.id.action_start_game:
+                Log.e("BT-DEBUG", "CONNECTED?");
                 if (bluetoothState == Consts.STATE_IS_CONNECTED)
                 {
-                    gameStart();
+                    Log.e("BT-DEBUG", "Starting");
+                    gameStart(true);
                 }
                 return true;
         }

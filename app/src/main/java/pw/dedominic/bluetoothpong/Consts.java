@@ -1,16 +1,16 @@
 package pw.dedominic.bluetoothpong;
 
-import android.graphics.Paint;
-
-/**
- * Created by prussian on 2/16/15.
- */
 public interface Consts
 {
     // messages
     public static final int READING = 0;
     public static final int SYNCHRONIZE = 1;
     public static final int CONNECT_STATE_CHANGE = 2;
+    public static final int DEFLECTION_X = 3;
+    public static final int DEFLECTION_Y = 4;
+    public static final int PADDLE_DOWN = 5;
+    public static final int PADDLE_UP = 6;
+    public static final int BALL_ANGLE = 7;
 
     // game constants
     public static final int PLAYER_PADDLE_LEFT  = 1;
@@ -28,4 +28,6 @@ public interface Consts
     public static final int STATE_IS_LISTENING  = 1;
     public static final int STATE_IS_CONNECTING = 2;
     public static final int STATE_IS_CONNECTED  = 3;
+
+    public static final int GET_MAC_ADDRESS = 0;
 }

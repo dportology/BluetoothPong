@@ -3,8 +3,6 @@ package pw.dedominic.bluetoothpong;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothServerSocket;
-import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
@@ -15,9 +13,7 @@ import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
 
-import java.io.IOException;
 import java.util.Set;
-import java.util.UUID;
 
 
 public class PairedBluetoothActivity extends Activity
@@ -71,7 +67,7 @@ public class PairedBluetoothActivity extends Activity
             String address = info.substring(info.length() - 17);
 
             // Create the result Intent and include the MAC address
-            Intent intent = getIntent();
+            Intent intent = new Intent();
             intent.putExtra("device", address);
 
             // Set result and finish this Activity

@@ -4,21 +4,14 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothServerSocket;
 import android.bluetooth.BluetoothSocket;
-import android.content.Context;
+import android.os.Handler;
+import android.util.Log;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.util.UUID;
-import java.util.logging.Handler;
 
-/**
- * Created by prussian on 2/16/15.
- */
 public class BluetoothPongService
 {
     private static final String mAppName = "BluetoothPong";
@@ -34,11 +27,10 @@ public class BluetoothPongService
 
     /**
      *
-     * @param context UI activity Context
      * @param handler Handler that allows a way to communicate
      *                back with the activity
      */
-    public BluetoothPongService(Context context, Handler handler)
+    public BluetoothPongService(Handler handler)
     {
         mBtAdapter = BluetoothAdapter.getDefaultAdapter();
         mHandler = handler;
@@ -48,6 +40,7 @@ public class BluetoothPongService
     {
         connectionState = state;
         // call handler to generate a message to activity
+        mHandler.obtainMessage(Consts.CONNECT_STATE_CHANGE, state, 0).sendToTarget();
     }
 
     public void listen()
@@ -59,7 +52,7 @@ public class BluetoothPongService
 
         listener = new ListenThread();
         changeState(Consts.STATE_IS_LISTENING);
-        listener.listen();
+        listener.start();
     }
 
     public void connectToHost(BluetoothDevice device)
@@ -71,20 +64,20 @@ public class BluetoothPongService
 
         joiner = new JoinThread(device);
         changeState(Consts.STATE_IS_CONNECTING);
-        joiner.connectTo();
+        joiner.start();
     }
 
     public void connect(BluetoothSocket socket)
     {
-        if (listener != null)
-        {
-            listener.cancel();
-        }
-
-        if (joiner != null)
-        {
-            joiner.cancel();
-        }
+//        if (listener != null)
+//        {
+//            listener.stop();
+//        }
+//
+//        if (joiner != null)
+//        {
+//            joiner.stop();
+//        }
 
         changeState(Consts.STATE_IS_CONNECTED);
         connected = new ConnectedThread(socket);
@@ -144,7 +137,7 @@ public class BluetoothPongService
             srvSocket = tmp;
         }
 
-        public void listen()
+        public void run()
         {
             BluetoothSocket socket = null;
 
@@ -158,10 +151,10 @@ public class BluetoothPongService
                 {
                     break;
                 }
-                if (socket != null)
+                if (socket != null && connectionState != Consts.STATE_IS_CONNECTED)
                 {
-                    changeState(Consts.STATE_IS_CONNECTED);
                     connect(socket);
+                    break;
                 }
             }
         }
@@ -195,7 +188,7 @@ public class BluetoothPongService
             socket = tmp;
         }
 
-        public void connectTo()
+        public void run()
         {
             mBtAdapter.cancelDiscovery();
 
@@ -252,9 +245,9 @@ public class BluetoothPongService
             out = tmpOut;
         }
 
-        public void readIn()
+        public void run()
         {
-            byte[] buffer = new byte[2048];
+            byte[] buffer = new byte[1024];
 
             int bytes_ret;
 
@@ -263,10 +256,13 @@ public class BluetoothPongService
                 try
                 {
                     bytes_ret = in.read(buffer);
+                    mHandler.obtainMessage(Consts.READING, bytes_ret, -1, buffer).sendToTarget();
                     // try to send bytes to activity using a message
                 }
                 catch (IOException e)
                 {
+                    Log.e("BT-DEBUG", e.getMessage());
+                    stopAllConnections();
                     break;
                 }
             }
@@ -279,21 +275,6 @@ public class BluetoothPongService
                 out.write(bytes);
             }
             catch (IOException e) {}
-        }
-
-        public byte[] serialize(Object obj) throws IOException
-        {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            ObjectOutputStream os = new ObjectOutputStream(out);
-            os.writeObject(obj);
-            return out.toByteArray();
-        }
-
-        public Object deserialize(byte[] input) throws IOException, ClassNotFoundException
-        {
-            ByteArrayInputStream in = new ByteArrayInputStream(input);
-            ObjectInputStream is = new ObjectInputStream(in);
-            return is.readObject();
         }
 
         public void cancel()
