@@ -10,7 +10,7 @@ import android.graphics.Paint;
 public class Ball
 {
     //defines ball size
-    private int radius;
+    private float radius;
 
     // x and y coords
     public double x;
@@ -36,22 +36,17 @@ public class Ball
     }
 
     // takes radius val too
-    public Ball(double x_, double y_, int rad)
+    public Ball(double x_, double y_, float rad)
     {
         x = x_;
         y = y_;
         radius = rad;
     }
 
-    public void setVel(double ang, double speed)
+    public void setVel(double ang, double speed, double ratio)
     {
-        x_vel = Math.cos(ang) * speed;
+        x_vel = Math.cos(ang) * speed * ratio;
         y_vel = Math.sin(ang) * speed;
-    }
-
-    public int getRad()
-    {
-        return radius;
     }
 
     public double getX_vel()

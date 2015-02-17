@@ -13,12 +13,14 @@ import java.util.Random;
 public class PongView extends View
 {
     // Constants
-    public final int FPS = 60;
-    public final int paddle_space = 75;
-    public final int paddle_half_height = 100;
-    public final int paddle_half_thickness = 8;
-    public final int paddle_thickness = paddle_half_thickness*2;
-    private static final Random rand = new Random();
+    public float paddle_space;
+    public float paddle_half_height;
+    public float paddle_half_thickness;
+    public float paddle_thickness;
+    public float ball_radius;
+    public float aspect_ratio;
+    public float ball_speed;
+    private final Random rand = new Random();
     private int player_paddle_side;
 
     // redraws view
@@ -36,6 +38,7 @@ public class PongView extends View
 
     // if initialized
     private boolean isInit = false;
+    private boolean waitingForOpponent = true;
 
     // creates a thread that will update and draw the view
     // based on delay set by call to sleep in PongView.update() function
@@ -78,10 +81,19 @@ public class PongView extends View
 
         if (!isInit)
         {
+            setConstants();
             newGame();
-            redraw.sleep(5000);
+            redraw.sleep(1);
             return;
         }
+
+        if (waitingForOpponent)
+        {
+            redraw.sleep(1000/Consts.FRAMES_PER_SECOND);
+        }
+
+        // ask for paddle changes from opponent
+        mHandler.obtainMessage(Consts.GET_ENEMY_PADDLE).sendToTarget();
 
         if (ball.getLeft() <= 0
             || ball.getRight() >= getWidth())
@@ -103,8 +115,6 @@ public class PongView extends View
                 ball.getTop()   <= player_paddle.getBottom())
             {
                 ball.yDeflect();
-                //msg back about deflect
-                mHandler.obtainMessage(Consts.DEFLECTION_Y).sendToTarget();
                 //ball.xDeflect();
             }
             else if (ball.y >= player_paddle.getTop()    &&
@@ -113,31 +123,29 @@ public class PongView extends View
                      ball.getLeft() >= paddle_space)
             {
                 ball.xDeflect();
-                //msg back about deflect
-                mHandler.obtainMessage(Consts.DEFLECTION_X).sendToTarget();
             }
         }
-//        else
-//        {
-//            if (ball.getBottom()>= enemy_paddle.getTop()  &&
-//                ball.getLeft()  >= enemy_paddle.getLeft() &&
-//                ball.getRight() <= enemy_paddle.getRight()&&
-//                ball.getTop()   <= enemy_paddle.getBottom())
-//            {
-//                ball.yDeflect();
-//                ball.xDeflect();
-//            }
-//            else if (ball.y >= enemy_paddle.getTop()    &&
-//                     ball.y <= enemy_paddle.getBottom() &&
-//                     ball.getRight() >= getWidth() - (paddle_space+paddle_thickness) &&
-//                     ball.getRight() <= getWidth() - (paddle_space))
-//            {
-//                ball.xDeflect();
-//            }
-//        }
+        else
+        {
+            if (ball.getBottom()>= enemy_paddle.getTop()  &&
+                ball.getLeft()  >= enemy_paddle.getLeft() &&
+                ball.getRight() <= enemy_paddle.getRight()&&
+                ball.getTop()   <= enemy_paddle.getBottom())
+            {
+                ball.yDeflect();
+                ball.xDeflect();
+            }
+            else if (ball.y >= enemy_paddle.getTop()    &&
+                     ball.y <= enemy_paddle.getBottom() &&
+                     ball.getRight() >= getWidth() - (paddle_space+paddle_thickness) &&
+                     ball.getRight() <= getWidth() - (paddle_space))
+            {
+                ball.xDeflect();
+            }
+        }
 
         // time till next frame in milliseconds
-        redraw.sleep(1000/FPS);
+        redraw.sleep(1000/Consts.FRAMES_PER_SECOND);
     }
 
     public void enemyDeflect(char vector)
@@ -154,7 +162,7 @@ public class PongView extends View
 
     public void newGame()
     {
-        ball = new Ball(getWidth()/2,getHeight()/2);
+        ball = new Ball(getWidth()/2,getHeight()/2, ball_radius);
         if (player_paddle_side == Consts.PLAYER_PADDLE_LEFT) {
             player_paddle = new Paddle(paddle_space, getHeight() / 2, paddle_half_height, paddle_thickness);
             enemy_paddle = new Paddle(getWidth() - paddle_space, getHeight() / 2, paddle_half_height, paddle_thickness);
@@ -172,7 +180,7 @@ public class PongView extends View
     public void serveBall()
     {
         double ball_ang = randomAngle();
-        ball.setVel(ball_ang, 6);
+        ball.setVel(ball_ang, ball_speed, aspect_ratio);
 
         String ball_ang_str = String.valueOf(ball_ang);
         byte[] angle_bytes = ball_ang_str.getBytes();
@@ -181,7 +189,8 @@ public class PongView extends View
 
     public void setBallVel(double ball_ang)
     {
-        ball.setVel(ball_ang, 6);
+        ball.setVel(ball_ang, ball_speed, aspect_ratio);
+        mHandler.obtainMessage(Consts.READY).sendToTarget();
     }
 
     // returns random angle in radians
@@ -192,22 +201,31 @@ public class PongView extends View
         return (rand.nextInt((max - min) + 1) + min) * .1;
     }
 
+    public void setConstants()
+    {
+        paddle_space = getWidth()/Consts.PADDLE_SPACE_FRACT;
+        paddle_half_thickness = getWidth()/Consts.PADDLE_HALFWIDTH_FRACT;
+        paddle_thickness = 2*paddle_half_thickness;
+        paddle_half_height = getHeight()/Consts.PADDLE_HALFHEIGHT_FRACT;
+        ball_radius = getWidth()/Consts.BALL_RADIUS_FRACT;
+        aspect_ratio = ((float)getWidth())/getHeight();
+        ball_speed = ball_radius/4;
+    }
+
     public void player_tilt(float tilt_val)
     {
-        //tilt_val *= 2;
-
-        if (!isInit)
+        if (!isInit || waitingForOpponent)
         {
             return;
         }
 
+        tilt_val *= 2;
         // makes sure paddles don't go off screen
         if (tilt_val < 0)
         {
             if (player_paddle.getTop() >= 0)
             {
-                player_paddle.paddleMove((float)-3);
-                mHandler.obtainMessage(Consts.PADDLE_UP).sendToTarget();
+                player_paddle.paddleMove((float)tilt_val);
             }
             else
             {
@@ -218,8 +236,7 @@ public class PongView extends View
         {
             if (player_paddle.getBottom() <= getHeight())
             {
-                player_paddle.paddleMove((float)3);
-                mHandler.obtainMessage(Consts.PADDLE_DOWN).sendToTarget();
+                player_paddle.paddleMove((float)tilt_val);
             }
             else
             {
@@ -228,22 +245,27 @@ public class PongView extends View
         }
     }
 
-    public void enemy_tilt(int direction)
+    public void enemy_tilt(float moving)
     {
-        if (direction == Consts.PADDLE_DOWN)
-        {
-            enemy_paddle.paddleMove((float)3);
-        }
-        else
-        {
-            enemy_paddle.paddleMove((float)-3);
-        }
+        enemy_paddle.setY(moving*getHeight());
     }
 
     public void setOtherConst(int side, Handler handler)
     {
         player_paddle_side = side;
         mHandler = handler;
+    }
+
+    public void setWaitingForOpponent(boolean state)
+    {
+        waitingForOpponent = state;
+    }
+
+    public byte[] getPlayerPaddleHeightPercent()
+    {
+        float paddle_loc = player_paddle.getY() / getHeight();
+        String writeString = String.valueOf(paddle_loc);
+        return writeString.getBytes();
     }
 
     @Override

@@ -10,11 +10,11 @@ public class Paddle
 {
     private float x;
     private float y;
-    private int paddle_half_width;
-    private int paddle_half_height;
+    private float paddle_half_width;
+    private float paddle_half_height;
     private float paddle_vel;
 
-    public Paddle(float pos1, float pos2, int h, int w)
+    public Paddle(float pos1, float pos2, float h, float w)
     {
         x = pos1;
         y = pos2;
@@ -24,6 +24,11 @@ public class Paddle
         paddle_half_height = h;
 
         paddle_vel = 0;
+    }
+
+    public void setY(float newY)
+    {
+        y = newY;
     }
 
     public void paddleMove(float tilt_val)

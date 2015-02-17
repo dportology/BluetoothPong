@@ -29,7 +29,7 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     private int bluetoothState = Consts.STATE_DOING_NOTHING;
     private int paddleSide = Consts.PLAYER_PADDLE_LEFT;
     private boolean isInit = false;
-    private boolean waitingOn_activ = false;
+    private boolean listeningForPaddle = false;
 
     private SensorManager senManage;
     private Sensor accelerometer;
@@ -56,20 +56,28 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
                     {
                         mPongView.enemy_tilt(Consts.PADDLE_DOWN);
                     }
-                    else if (value.equals("DEFLECT_X"))
-                    {
-                        mPongView.enemyDeflect('x');
-                    }
-                    else if (value.equals("DEFLECT_Y"))
-                    {
-                        mPongView.enemyDeflect('y');
-                    }
                     else if (value.equals("START"))
                     {
                         gameStart(false);
                     }
+                    else if (value.equals("READY"))
+                    {
+                        mPongView.setWaitingForOpponent(false);
+                    }
+                    else if (value.equals("GET_PADDLE"))
+                    {
+                        mBtPongService.write(mPongView.getPlayerPaddleHeightPercent());
+                    }
                     else
                     {
+                        if (listeningForPaddle)
+                        {
+                            try
+                            {
+                                mPongView.enemy_tilt(Float.parseFloat(value));
+                            }
+                            catch (NumberFormatException e) {}
+                        }
                         try
                         {
                             mPongView.setBallVel(Double.parseDouble(value));
@@ -85,13 +93,10 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
                     Log.e("BT-DEBUG", "" + msg.arg1);
                     bluetoothState = msg.arg1;
                     return;
-                case Consts.DEFLECTION_X:
+                case Consts.GET_ENEMY_PADDLE:
                     // send msg of paddle deflect to enemy
-                    mBtPongService.write("DEFLECT_X".getBytes());
-                    return;
-                case Consts.DEFLECTION_Y:
-                    // send msg of paddle deflect to enemy
-                    mBtPongService.write("DEFLECT_Y".getBytes());
+                    mBtPongService.write("GET_PADDLE".getBytes());
+                    listeningForPaddle = true;
                     return;
                 case Consts.PADDLE_DOWN:
                     mBtPongService.write("DOWN".getBytes());
@@ -101,6 +106,9 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
                     return;
                 case Consts.BALL_ANGLE:
                     mBtPongService.write((byte[])msg.obj);
+                    return;
+                case Consts.READY:
+                    mBtPongService.write("READY".getBytes());
             }
         }
     };
@@ -158,18 +166,12 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
 
             Intent getBtDevice = new Intent(this, PairedBluetoothActivity.class);
             startActivityForResult(getBtDevice, Consts.GET_MAC_ADDRESS);
-            waitingOn_activ = true;
         }
     }
 
     public void onActivityResult(int requestCode, int resultCode, Intent data)
     {
         Log.e("BT-DEBUG", "test");
-        if (!waitingOn_activ)
-        {
-            return;
-        }
-
         if (resultCode == Activity.RESULT_OK && requestCode == Consts.GET_MAC_ADDRESS)
         {
             String MAC_ADDRESS = data.getStringExtra("device");
