@@ -30,6 +30,7 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
     private int paddleSide = Consts.PLAYER_PADDLE_LEFT;
     private boolean isInit = false;
     private boolean listeningForPaddle = false;
+    private boolean listeningForBallAng = false;
 
     private SensorManager senManage;
     private Sensor accelerometer;
@@ -41,74 +42,59 @@ public class MainActivity extends ActionBarActivity implements SensorEventListen
         @Override
         public void handleMessage(Message msg)
         {
-            Log.e("BT-USB", "Handling Message " + msg.what);
             switch (msg.what)
             {
                 case Consts.READING:
                     String value = new String((byte[]) msg.obj, 0, msg.arg1);
-                    Log.e("In READING", "message: " + value);
 
-                    if (value.equals("UP"))
-                    {
-                        mPongView.enemy_tilt(Consts.PADDLE_UP);
-                    }
-                    else if (value.equals("DOWN"))
-                    {
-                        mPongView.enemy_tilt(Consts.PADDLE_DOWN);
-                    }
-                    else if (value.equals("START"))
+                    if (value.equals("START"))
                     {
                         gameStart(false);
+                        listeningForBallAng = true;
                     }
                     else if (value.equals("READY"))
                     {
                         mPongView.setWaitingForOpponent(false);
                     }
-                    else if (value.equals("GET_PADDLE"))
-                    {
-                        mBtPongService.write(mPongView.getPlayerPaddleHeightPercent());
-                    }
-                    else
-                    {
-                        if (listeningForPaddle)
-                        {
+                    else {
+                        if (listeningForPaddle) {
                             try
                             {
                                 mPongView.enemy_tilt(Float.parseFloat(value));
                             }
-                            catch (NumberFormatException e) {}
+                            catch (NumberFormatException e)
+                            {
+                            }
                         }
-                        try
+                        else
                         {
-                            mPongView.setBallVel(Double.parseDouble(value));
+                            try
+                            {
+                                mPongView.setBallVel(Double.parseDouble(value));
+                                listeningForBallAng = false;
+                            }
+                            catch (NumberFormatException e)
+                            {
+                            }
                         }
-                        catch (NumberFormatException e) {}
                     }
-                    return;
-                case Consts.SYNCHRONIZE:
-                    // send/receive periodic state info to keep things in check
                     return;
                 case Consts.CONNECT_STATE_CHANGE:
                     // handle changes in connection state
                     Log.e("BT-DEBUG", "" + msg.arg1);
                     bluetoothState = msg.arg1;
                     return;
-                case Consts.GET_ENEMY_PADDLE:
-                    // send msg of paddle deflect to enemy
-                    mBtPongService.write("GET_PADDLE".getBytes());
-                    listeningForPaddle = true;
-                    return;
-                case Consts.PADDLE_DOWN:
-                    mBtPongService.write("DOWN".getBytes());
-                    return;
-                case Consts.PADDLE_UP:
-                    mBtPongService.write("UP".getBytes());
-                    return;
                 case Consts.BALL_ANGLE:
                     mBtPongService.write((byte[])msg.obj);
                     return;
                 case Consts.READY:
                     mBtPongService.write("READY".getBytes());
+                    listeningForPaddle = true;
+                    return;
+                case Consts.SEND_PADDLE_INFO:
+                    mBtPongService.write((byte[])msg.obj);
+                case Consts.GAME_OVER:
+                    listeningForPaddle = false;
             }
         }
     };

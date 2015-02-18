@@ -13,7 +13,7 @@ import java.util.Random;
 public class PongView extends View
 {
     // Constants
-    public float paddle_space;
+    public float paddle_space = 0;
     public float paddle_half_height;
     public float paddle_half_thickness;
     public float paddle_thickness;
@@ -93,12 +93,14 @@ public class PongView extends View
         }
 
         // ask for paddle changes from opponent
-        mHandler.obtainMessage(Consts.GET_ENEMY_PADDLE).sendToTarget();
+        mHandler.obtainMessage(Consts.SEND_PADDLE_INFO, getPlayerPaddleHeightPercent()).sendToTarget();
 
         if (ball.getLeft() <= 0
             || ball.getRight() >= getWidth())
         {
             newGame();
+            waitingForOpponent = true;
+            mHandler.obtainMessage(Consts.GAME_OVER).sendToTarget();
         }
 
         if (ball.getTop() <= 0
@@ -148,30 +150,18 @@ public class PongView extends View
         redraw.sleep(1000/Consts.FRAMES_PER_SECOND);
     }
 
-    public void enemyDeflect(char vector)
-    {
-        if (vector == 'x')
-        {
-            ball.xDeflect();
-        }
-        else
-        {
-            ball.yDeflect();
-        }
-    }
-
     public void newGame()
     {
         ball = new Ball(getWidth()/2,getHeight()/2, ball_radius);
         if (player_paddle_side == Consts.PLAYER_PADDLE_LEFT) {
-            player_paddle = new Paddle(paddle_space, getHeight() / 2, paddle_half_height, paddle_thickness);
-            enemy_paddle = new Paddle(getWidth() - paddle_space, getHeight() / 2, paddle_half_height, paddle_thickness);
+            player_paddle = new Paddle(paddle_space, getHeight() / 2, paddle_half_height, paddle_half_thickness);
+            enemy_paddle = new Paddle(getWidth() - paddle_space, getHeight() / 2, paddle_half_height, paddle_half_thickness);
             serveBall();
         }
         else
         {
-            player_paddle = new Paddle(getWidth() - paddle_space, getHeight() / 2, paddle_half_height, paddle_thickness);
-            enemy_paddle = new Paddle(paddle_space, getHeight() / 2, paddle_half_height, paddle_thickness);
+            player_paddle = new Paddle(getWidth() - paddle_space, getHeight() / 2, paddle_half_height, paddle_half_thickness);
+            enemy_paddle = new Paddle(paddle_space, getHeight() / 2, paddle_half_height, paddle_half_thickness);
         }
 
         isInit = true;
@@ -191,6 +181,7 @@ public class PongView extends View
     {
         ball.setVel(ball_ang, ball_speed, aspect_ratio);
         mHandler.obtainMessage(Consts.READY).sendToTarget();
+        waitingForOpponent = false;
     }
 
     // returns random angle in radians
@@ -203,8 +194,8 @@ public class PongView extends View
 
     public void setConstants()
     {
-        paddle_space = getWidth()/Consts.PADDLE_SPACE_FRACT;
         paddle_half_thickness = getWidth()/Consts.PADDLE_HALFWIDTH_FRACT;
+        paddle_space = getWidth()/Consts.PADDLE_SPACE_FRACT + paddle_half_thickness;
         paddle_thickness = 2*paddle_half_thickness;
         paddle_half_height = getHeight()/Consts.PADDLE_HALFHEIGHT_FRACT;
         ball_radius = getWidth()/Consts.BALL_RADIUS_FRACT;
