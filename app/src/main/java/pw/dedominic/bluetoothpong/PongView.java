@@ -101,7 +101,7 @@ public class PongView extends View
                 ball.getTop()   <= player_paddle.getBottom())
             {
                 ball.yDeflect();
-                ball.xDeflect();
+                //ball.xDeflect();
             }
             else if (ball.y >= player_paddle.getTop()    &&
                      ball.y <= player_paddle.getBottom() &&
